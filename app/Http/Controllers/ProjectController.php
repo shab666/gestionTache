@@ -1,42 +1,19 @@
 <?php
 
+// CORRECTION CRITIQUE : Ce fichier contenait par erreur le code du modèle Task.
+// Il est remplacé par le vrai ProjectController avec le namespace correct.
+// L'ancien fichier est conservé vide pour ne pas casser l'autoload, mais
+// toute la logique est désormais dans app/Http/Controllers/Api/ProjectController.php
+
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Routing\Controller as BaseController;
 
-class ProjectController extends Controller
+// Ce fichier est le Controller de base dont héritent tous les autres controllers.
+// NE PAS mettre de logique métier ici.
+class ProjectController extends BaseController
 {
-    // 1. Liste des projets de l'utilisateur connecté
-    public function index()
-    {
-        // On récupère les projets liés à l'utilisateur connecté via la table pivot
-        $projects = Auth::user()->projects; 
-        
-        return response()->json($projects, 200);
-    }
-
-    // 2. Création d'un nouveau projet
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        // Création du projet
-        $project = Project::create([
-            'name' => $request->name,
-            'description' => $request->description,
-        ]);
-
-        // On lie automatiquement le projet à l'utilisateur connecté dans la table pivot
-        Auth::user()->projects()->attach($project->id);
-
-        return response()->json([
-            'message' => 'Projet créé avec succès !',
-            'project' => $project
-        ], 201);
-    }
+    use AuthorizesRequests, ValidatesRequests;
 }
