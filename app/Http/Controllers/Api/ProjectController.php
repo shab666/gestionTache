@@ -66,4 +66,25 @@ class ProjectController extends Controller
 
         return response()->json(['message' => 'Projet supprimé avec succès'], 200);
     }
+
+    /**
+     * [GET] /api/projects/{id}/report -> Générer un rapport PDF
+     */
+    public function report($id)
+    {
+        $project = Project::with(['tasks', 'users.roles'])->findOrFail($id);
+
+        $totalTasksCount = $project->tasks->count();
+        $completedTasksCount = $project->tasks->where('status', 'done')->count();
+        $progress = $totalTasksCount > 0 ? round(($completedTasksCount / $totalTasksCount) * 100) : 0;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.project_report', [
+            'project' => $project,
+            'totalTasksCount' => $totalTasksCount,
+            'completedTasksCount' => $completedTasksCount,
+            'progress' => $progress
+        ]);
+
+        return $pdf->download("Rapport_Projet_{$project->id}.pdf");
+    }
 }

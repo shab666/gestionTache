@@ -90,6 +90,22 @@ class TaskController extends Controller
         return response()->json(['message' => 'Tâche supprimée avec succès'], 200);
     }
 
+    // NOUVELLE MÉTHODE : [DELETE] /api/tasks/{id} -> Supprimer sans avoir besoin de l'ID projet
+    public function destroyFlat($id)
+    {
+        $task = Task::findOrFail($id);
+
+        // Optionnel: Vérification de la Policy si nécessaire
+        // $this->authorize('delete', $task);
+
+        if (method_exists($task, 'users')) {
+            $task->users()->detach();
+        }
+        $task->delete();
+
+        return response()->json(['message' => 'Tâche supprimée avec succès (flat)'], 200);
+    }
+
     // ----------------------------------------------------------------
     // MÉTHODE CORRIGÉE JALON 2 : [PUT] /api/tasks/{id}/move
     // ----------------------------------------------------------------
