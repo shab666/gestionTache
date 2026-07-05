@@ -1,15 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\Restaurant\ClientController;
+use App\Http\Controllers\Api\Restaurant\HistoriqueStatutController;
+use App\Http\Controllers\Api\Restaurant\ReservationController;
+use App\Http\Controllers\Api\Restaurant\TableController;
+use App\Http\Controllers\Api\Restaurant\ZoneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\SearchController;
-
-// CORRECTION : Import des controllers dans le bon namespace App\Http\Controllers\Api
-use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\TaskController;
-
-
-Route::get('/search', [SearchController::class, 'globalSearch']);
 
 // Routes publiques (pas besoin d'être connecté)
 Route::post('/register', [App\Http\Controllers\AuthController::class, 'register']);
@@ -26,22 +23,66 @@ Route::middleware('auth:sanctum')->group(function () {
     // Déconnexion
     Route::post('/logout', [App\Http\Controllers\AuthController::class, 'logout']);
 
-    // CRUD complet sur les projets
-    Route::apiResource('projects', ProjectController::class);
+    // =========================================================================
+    // MODULE RESTAURANT — Gestion du cycle de vie des tables & réservations
+    // =========================================================================
+    Route::prefix('restaurant')->name('restaurant.')->group(function () {
 
-    // Rapport PDF pour un projet
-    Route::get('/projects/{id}/report', [ProjectController::class, 'report']);
+        // --- Zones ---
+        // GET    /api/restaurant/zones
+        // POST   /api/restaurant/zones
+        // GET    /api/restaurant/zones/{zone}
+        // PUT    /api/restaurant/zones/{zone}
+        // DELETE /api/restaurant/zones/{zone}
+        Route::apiResource('zones', ZoneController::class);
 
-    // Routes pour les Tâches imbriquées dans les projets
-    // URLs générées :
-    // - GET    /api/projects/{project}/tasks
-    // - POST   /api/projects/{project}/tasks
-    // - GET    /api/projects/{project}/tasks/{task}
-    // - PUT    /api/projects/{project}/tasks/{task}
-    // - DELETE /api/projects/{project}/tasks/{task}
-    Route::apiResource('projects.tasks', TaskController::class);
+        // --- Tables de restaurant ---
+        // GET    /api/restaurant/tables
+        // POST   /api/restaurant/tables
+        // GET    /api/restaurant/tables/{table}
+        // PUT    /api/restaurant/tables/{table}
+        // DELETE /api/restaurant/tables/{table}
+        Route::apiResource('tables', TableController::class);
 
-    // Changement de statut/colonne d'une tâche (Kanban move)
-    Route::put('/tasks/{id}', [TaskController::class, 'move']);
-    Route::delete('/tasks/{id}', [TaskController::class, 'destroyFlat']);
+        // PATCH  /api/restaurant/tables/{table}/statut  ← State Machine
+        Route::patch('tables/{table}/statut', [TableController::class, 'updateStatut'])
+             ->name('tables.statut');
+
+        // GET    /api/restaurant/tables/{table}/historique  ← Audit trail par table
+        Route::get('tables/{table}/historique', [HistoriqueStatutController::class, 'index'])
+             ->name('tables.historique');
+
+        // GET    /api/restaurant/historique  ← Vue globale admin
+        Route::get('historique', [HistoriqueStatutController::class, 'global'])
+             ->name('historique.global');
+
+        // --- Clients ---
+        // GET    /api/restaurant/clients?q=terme
+        // POST   /api/restaurant/clients
+        // GET    /api/restaurant/clients/{client}
+        // PUT    /api/restaurant/clients/{client}
+        // DELETE /api/restaurant/clients/{client}
+        Route::apiResource('clients', ClientController::class);
+
+        // --- Réservations ---
+        // GET    /api/restaurant/reservations?date=&statut=&table_id=
+        // POST   /api/restaurant/reservations
+        // GET    /api/restaurant/reservations/{reservation}
+        // PUT    /api/restaurant/reservations/{reservation}
+        // DELETE /api/restaurant/reservations/{reservation}
+        Route::apiResource('reservations', ReservationController::class);
+
+        // Actions sur le cycle de vie des réservations
+        // POST   /api/restaurant/reservations/{reservation}/confirmer
+        Route::post('reservations/{reservation}/confirmer', [ReservationController::class, 'confirmer'])
+             ->name('reservations.confirmer');
+
+        // POST   /api/restaurant/reservations/{reservation}/annuler
+        Route::post('reservations/{reservation}/annuler', [ReservationController::class, 'annuler'])
+             ->name('reservations.annuler');
+
+        // POST   /api/restaurant/reservations/{reservation}/terminer
+        Route::post('reservations/{reservation}/terminer', [ReservationController::class, 'terminer'])
+             ->name('reservations.terminer');
+    });
 });
